@@ -9,17 +9,17 @@ class InvoiceExtraction:
 
     def reduce_size(self, path, size=-1, padding=0):
         or_image = Image.open(path)
-        gray_image = ImageOps.grayscale(or_image)
+        or_image = ImageOps.grayscale(or_image)
         if size == -1:
-            new_img = ImageOps.expand(gray_image, padding)
+            new_img = ImageOps.expand(or_image, padding)
             return np.array(new_img).astype('uint8')
 
         size = size - padding
-        s = gray_image.size
+        s = or_image.size
         if s[0] <= s[1]:
-            image = gray_image.copy().resize((int(s[0] * (size / s[1])), size))
+            image = or_image.copy().resize((int(s[0] * (size / s[1])), size))
         else:
-            image = gray_image.copy().resize((size, int(s[1] * (size / s[0]))))
+            image = or_image.copy().resize((size, int(s[1] * (size / s[0]))))
 
         new_size = image.size
         delta_w = size - new_size[0] + padding
@@ -33,7 +33,7 @@ class InvoiceExtraction:
         or_padding = (delta_w // 2, delta_h // 2, delta_w - (delta_w // 2), delta_h - (delta_h // 2))
         or_image = ImageOps.expand(or_image, or_padding)
 
-        return np.array(new_img)/255, np.array(or_image)/255
+        return np.uint8(new_img)/255, np.uint8(or_image)
 
     def reorder(self, myPoints):
         myPoints = myPoints.reshape((4, 2))
@@ -105,6 +105,12 @@ class InvoiceExtraction:
                                [x, y + maxHeight * ratio]]
         return destination_corners
 
+    def thresh_hold(self, image):
+        blurred = cv2.GaussianBlur(image, (7, 7), 0)
+        (T, thresh) = cv2.threshold(blurred, 0, 255,
+                                       cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        return thresh
+
     def extract(self, image_path):
         image, or_img = self.reduce_size(image_path, 256, 10)
         mask = self.model.predict(image.reshape((1, image.shape[0], image.shape[0], 1))).reshape((256, 256))
@@ -130,4 +136,4 @@ class InvoiceExtraction:
         final = cv2.warpPerspective(or_img, M, (destination_corners[2][0], destination_corners[2][1]),
                                     flags=cv2.INTER_LINEAR)
         
-        return final
+        return self.thresh_hold(final)
