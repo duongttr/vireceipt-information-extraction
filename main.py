@@ -10,6 +10,7 @@ model = load_model(model_path, compile=False)
 in_extract = InvoiceExtraction(model)
 
 result = in_extract.extract(img_path)
+
 plt.imshow(result)
 plt.show()
 

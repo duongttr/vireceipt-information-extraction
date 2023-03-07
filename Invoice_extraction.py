@@ -9,17 +9,17 @@ class InvoiceExtraction:
 
     def reduce_size(self, path, size=-1, padding=0):
         or_image = Image.open(path)
-        or_image = ImageOps.grayscale(or_image)
+        gray_image = ImageOps.grayscale(or_image)
         if size == -1:
-            new_img = ImageOps.expand(or_image, padding)
+            new_img = ImageOps.expand(gray_image, padding)
             return np.array(new_img).astype('uint8')
 
         size = size - padding
-        s = or_image.size
+        s = gray_image.size
         if s[0] <= s[1]:
-            image = or_image.copy().resize((int(s[0] * (size / s[1])), size))
+            image = gray_image.copy().resize((int(s[0] * (size / s[1])), size))
         else:
-            image = or_image.copy().resize((size, int(s[1] * (size / s[0]))))
+            image = gray_image.copy().resize((size, int(s[1] * (size / s[0]))))
 
         new_size = image.size
         delta_w = size - new_size[0] + padding
