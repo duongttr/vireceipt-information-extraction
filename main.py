@@ -1,22 +1,15 @@
 import matplotlib.pyplot as plt
-from Canny import *
-from PIL import Image
 
-# Load image
-path = 'Data/3.jpg'
-img = Image.open(path)
-np_img = np.array(img).astype('uint8')
+from keras.models import load_model
+from Invoice_extraction import InvoiceExtraction
 
-# Scanner object
-scanner = Canny()
+model_path = "D:\Downloads\Invoice_Segmentation_model.h5"
+img_path = "D:\Downloads\\bhx_7a28afe540a186ffdfb0.jpg"
 
-# Run
-preprocess = scanner.preprocessing(np_img)
-final, result = scanner.scan(preprocess)
+model = load_model(model_path, compile=False)
+in_extract = InvoiceExtraction(model)
 
-# Image during process
-scanner.plot_image(result)
-
-# Show
-plt.imshow(final)
+result = in_extract.extract(img_path)
+plt.imshow(result)
 plt.show()
+
