@@ -8,6 +8,7 @@ from vietocr.tool.config import Cfg
 OUTPUTS_FILEPATH        = r"data\outputs.tsv"
 BBOX_CSV_FILEPATH       = r"data\roboflow\train\_annotations.csv"
 RESUME_INDEX_FILEPATH   = r"data\resume_index.txt" 
+IMG_FOLDER_PATH = os.path.join('data', 'roboflow', 'train')
 
 config = Cfg.load_config_from_name('vgg_transformer')
 config['cnn']['pretrained']=False
@@ -20,7 +21,7 @@ def add_index_col_to_csvfile(csv_file_path):
     df = pd.read_csv(csv_file_path)
 
     if 'index' in df.columns: # no need to add
-        print('Index col existed.')
+        print('Index col existed. No need to add.')
         return
     
     df['index'] = df.index
@@ -80,7 +81,7 @@ def get_cropped_img(bbox_info):
         return latlong
 
     img_name = bbox_info[1]
-    img_path = os.path.join('data', 'roboflow', 'train', img_name)
+    img_path = os.path.join(IMG_FOLDER_PATH, img_name)
     img = Image.open(img_path)
     cropped_img = crop_resize(img, get_latlong(bbox_info))
     return cropped_img
