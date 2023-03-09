@@ -7,7 +7,7 @@ from vietocr.tool.config import Cfg
 
 OUTPUTS_FILEPATH        = r"data\outputs2.tsv"
 RESUME_INDEX_FILEPATH   = r"data\resume_index2.txt" 
-BBOX_CSV_FILEPATH       = r"D:\TheKhoi_Laptop\MineUniversity\Coding notes\bill-information-extraction\data\roboflow2\Khoi.csv"
+BBOX_CSV_FILEPATH       = r"data\roboflow2\Khoi.csv"
 IMG_FOLDER_PATH = r"data\roboflow2\bill.v1i.tensorflow\train"
 
 config = Cfg.load_config_from_name('vgg_transformer')
