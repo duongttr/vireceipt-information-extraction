@@ -1,6 +1,6 @@
-.txt
-.csv
-.jpg
+*.txt
+*.csv
+*.jpg
 env/
 data/
 test*

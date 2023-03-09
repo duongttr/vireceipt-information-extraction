@@ -5,10 +5,10 @@ import pandas as pd
 from vietocr.tool.predictor import Predictor
 from vietocr.tool.config import Cfg
 
-OUTPUTS_FILEPATH        = r"data\outputs.tsv"
-BBOX_CSV_FILEPATH       = r"data\roboflow\train\_annotations.csv"
-RESUME_INDEX_FILEPATH   = r"data\resume_index.txt" 
-IMG_FOLDER_PATH = os.path.join('data', 'roboflow', 'train')
+OUTPUTS_FILEPATH        = r"data\outputs2.tsv"
+RESUME_INDEX_FILEPATH   = r"data\resume_index2.txt" 
+BBOX_CSV_FILEPATH       = r"D:\TheKhoi_Laptop\MineUniversity\Coding notes\bill-information-extraction\data\roboflow2\Khoi.csv"
+IMG_FOLDER_PATH = r"data\roboflow2\bill.v1i.tensorflow\train"
 
 config = Cfg.load_config_from_name('vgg_transformer')
 config['cnn']['pretrained']=False
@@ -37,11 +37,14 @@ def init_bbox(bbox_csv_filepath, resume_index_filepath):
     global bbox_info
 
     def get_resume_index(resume_index_filepath):
-        with open(resume_index_filepath, 'r') as f:
-            try:
-                current_index = int(f.read())
-            except:
-                current_index=0
+        try:
+            with open(resume_index_filepath, 'r') as f:
+                try:
+                    current_index = int(f.read())
+                except:
+                    current_index=0
+        except:
+            current_index = 0
         return current_index
     def get_bbox_info_fromcsv(bbox_csv_filepath): 
         with open(bbox_csv_filepath, 'r', encoding='utf-8') as csv_file:
@@ -155,7 +158,7 @@ label_bbox.pack()
 label_instruction = tk.Label(title_frame, text='Enter the text you see in the box below:')
 label_instruction.pack(pady=(20, 0))
 
-entry_noidung = tk.Entry(title_frame, width=100)
+entry_noidung = tk.Entry(title_frame, width=60,font=('Georgia 12'))
 predicted_text = detector.predict(cropped_img)
 entry_noidung.insert(0, predicted_text)
 entry_noidung.pack()
