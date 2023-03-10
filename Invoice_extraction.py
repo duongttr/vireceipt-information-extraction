@@ -4,9 +4,12 @@ from PIL import Image, ImageOps
 
 
 class InvoiceExtraction:
+
+    # Import model segmentation
     def __init__(self, model):
         self.model = model
 
+    # Chuyển hình ảnh về hình vuông kích thước 256x256 bằng các thêm padding
     def reduce_size(self, path, size=-1, padding=0):
         or_image = Image.open(path)
         or_image = ImageOps.grayscale(or_image)
@@ -35,19 +38,6 @@ class InvoiceExtraction:
 
         return np.uint8(new_img)/255, np.uint8(or_image)
 
-    def reorder(self, myPoints):
-        myPoints = myPoints.reshape((4, 2))
-        myPointsNew = np.zeros((4, 1, 2), dtype=np.int32)
-        add = myPoints.sum(1)
-
-        myPointsNew[0] = myPoints[np.argmin(add)]
-        myPointsNew[3] = myPoints[np.argmax(add)]
-        diff = np.diff(myPoints, axis=1)
-        myPointsNew[1] = myPoints[np.argmin(diff)]
-        myPointsNew[2] = myPoints[np.argmax(diff)]
-
-        return myPointsNew
-
     def drawRectangle(img, biggest, thickness):
         cv2.line(img, (biggest[0][0][0], biggest[0][0][1]), (biggest[1][0][0], biggest[1][0][1]), (0, 255, 0),
                  thickness)
@@ -60,6 +50,7 @@ class InvoiceExtraction:
 
         return img
 
+    # Sắp xếp các tọa độ của ảnh
     def order_points(self, pts):
         rect = np.zeros((4, 2), dtype='float32')
         pts = np.array(pts)
@@ -72,6 +63,7 @@ class InvoiceExtraction:
         rect[3] = pts[np.argmax(diff)]
         return rect.astype('int').tolist()
 
+    # Xác định tọa độ mà ta muốn tham chiếu tới (Cụ thể là ta muốn tham chiều đầu vào về hình chữ nhật)
     def find_dest(self, pts):
         (tl, tr, br, bl) = pts
         widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
@@ -85,55 +77,50 @@ class InvoiceExtraction:
 
         return self.order_points(destination_corners)
 
-    def restore_coor(self, contours, ratio):
-        (tl, tr, br, bl) = contours
-        # Finding the maximum width.
-        widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
-        widthB = np.sqrt(((tr[0] - tl[0]) ** 2) + ((tr[1] - tl[1]) ** 2))
-        maxWidth = max(int(widthA), int(widthB))
-
-        # Finding the maximum height.
-        heightA = np.sqrt(((tr[0] - br[0]) ** 2) + ((tr[1] - br[1]) ** 2))
-        heightB = np.sqrt(((tl[0] - bl[0]) ** 2) + ((tl[1] - bl[1]) ** 2))
-        maxHeight = max(int(heightA), int(heightB))
-
-        x = tl[0] * ratio // 2
-        y = tl[1] * ratio // 2
-        print(maxWidth, maxHeight)
-        # Final destination co-ordinates.
-        destination_corners = [[y, x], [x + maxWidth * ratio, y], [x + maxWidth * ratio, y + maxHeight * ratio],
-                               [x, y + maxHeight * ratio]]
-        return destination_corners
-
+    # Chuyển ảnh về trắng đen
     def thresh_hold(self, image):
         blurred = cv2.GaussianBlur(image, (7, 7), 0)
         (T, thresh) = cv2.threshold(blurred, 0, 255,
                                        cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         return thresh
 
+    # Trích xuất Bill ra
     def extract(self, image_path):
+        # Reshape ảnh
         image, or_img = self.reduce_size(image_path, 256, 10)
-        mask = self.model.predict(image.reshape((1, image.shape[0], image.shape[0], 1))).reshape((256, 256))
-        canny = cv2.Canny(np.uint8(mask*255), 0, 200)
-        canny = cv2.dilate(canny, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
 
+        # Tạo mask
+        mask = self.model.predict(image.reshape((1, image.shape[0], image.shape[0], 1))).reshape((256, 256))
+
+        # Bộ lọc cạnh
+        canny = cv2.Canny(np.uint8(mask*255), 0, 200)
+        # Làm các cạnh liền mạch không đứt gãy
+        canny = cv2.dilate(canny, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+        # Xác định các cạnh
         contours, hierarchy = cv2.findContours(canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        # Chọn 5 vùng có diện tích lớn nhất
         page = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
 
+        # Xấp xỉ các các tọa độ cạnh để tìm 4 điểm góc
         for c in page:
             epsilon = 0.02 * cv2.arcLength(c, True)
             corners = cv2.approxPolyDP(c, epsilon, True)
             if len(corners) == 4:
                 break
 
-        # print(corners, int(or_img.shape[0]/image.shape[0]))
+        # Chuyển các tọa độ góc về kích thước ban đầu để trích xuất bill từ ảnh gốc chứ không phải ảnh reshape
         corners = sorted(np.concatenate(corners).tolist())
         corners = (np.array(corners) * (or_img.shape[0] / image.shape[0])).tolist()
+
+        # Tọa độ điểm của ảnh đầu vào
         corners = self.order_points(corners)
+        # Tạo độ điểm của hình muốn tham chiếu
         destination_corners = self.find_dest(corners)
+        # Tiến hành warp
         M = cv2.getPerspectiveTransform(np.float32(corners), np.float32(destination_corners))
         final = cv2.warpPerspective(or_img, M, (destination_corners[2][0], destination_corners[2][1]),
                                     flags=cv2.INTER_LINEAR)
-        
+
+        # thresh_hold để chuyển trắng đen
         return self.thresh_hold(final)
