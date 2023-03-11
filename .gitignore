@@ -1,7 +1,4 @@
-*.txt
-*.csv
-*.jpg
-env/
-data/
-test*
-*copy*
+dataset/
+raw_data/
+test/
+tmp/
