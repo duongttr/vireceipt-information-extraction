@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-from PIL import Image, ImageOps
-
+from PIL import Image, ImageOps, ImageEnhance
+from matplotlib import pyplot as plt
 
 class InvoiceExtraction:
 
@@ -78,14 +78,25 @@ class InvoiceExtraction:
         return self.order_points(destination_corners)
 
     # Chuyển ảnh về trắng đen
-    def thresh_hold(self, image):
+    def thresh_hold(self, image, threshold = 175):
         blurred = cv2.GaussianBlur(image, (7, 7), 0)
-        (T, thresh) = cv2.threshold(blurred, 0, 255,
+        (T, thresh) = cv2.threshold(blurred, threshold, 255,
                                        cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         return thresh
 
-    # Trích xuất Bill ra
-    def extract(self, image_path):
+
+    def adaptive_binary_image(self, image, block_size=11, constant=2):
+        image = np.array(image)
+        binary_image = cv2.adaptiveThreshold(image, 255, 
+                                             cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                             cv2.THRESH_BINARY, 
+                                             block_size, constant)
+        return binary_image
+
+
+
+    # Dựng ảnh bị nghiêng lên
+    def warp_perspective(self, image_path):
         # Reshape ảnh
         image, or_img = self.reduce_size(image_path, 256, 10)
 
@@ -119,8 +130,47 @@ class InvoiceExtraction:
         destination_corners = self.find_dest(corners)
         # Tiến hành warp
         M = cv2.getPerspectiveTransform(np.float32(corners), np.float32(destination_corners))
-        final = cv2.warpPerspective(or_img, M, (destination_corners[2][0], destination_corners[2][1]),
+        warp_img = cv2.warpPerspective(or_img, M, (destination_corners[2][0], destination_corners[2][1]),
                                     flags=cv2.INTER_LINEAR)
+        return warp_img
 
-        # thresh_hold để chuyển trắng đen
-        return self.thresh_hold(final)
+
+    # Trích xuất Bill ra, gồm WarpPerspective và Threshold(chuyển trắng đen)
+    def extract(self, image_path):
+        warp_img = self.warp_perspective(image_path)
+        extracted_img = self.thresh_hold(warp_img)
+        return extracted_img
+
+
+    # Blur, reduce noise
+    def blur(self, image_path, blur=0):
+        if isinstance(image_path, np.ndarray):
+            image = image_path
+        else:
+            image, or_img = self.reduce_size(image_path, 256, 10)
+        blur_img = cv2.GaussianBlur(image   , (5, 5), blur)
+        return blur_img
+
+    # Enhance the contrast, to balance with the blur
+    def enhance(self, image_path, factor=1.5):
+        if isinstance(image_path, np.ndarray):
+            image = image_path
+        else:
+            image, or_img = self.reduce_size(image_path, 256, 10)
+        enhancer = ImageEnhance.Contrast(Image.fromarray(image))
+        enhanced_img = enhancer.enhance(factor)
+        return enhanced_img
+
+class Utils():
+    def __init__(self):
+        pass
+    def plot_results(self, results: dict, fig_size = (8,8), rows=1):
+        columns = int(len(results.keys())/rows)
+        
+        names = list(results.keys())
+        fig = plt.figure(figsize=fig_size)
+        for i in range(len(names)):        
+            subplot = fig.add_subplot(rows, columns, i+1)
+            subplot.title.set_text(names[i])
+            plt.imshow(results[names[i]], cmap='gray')
+        plt.show()
