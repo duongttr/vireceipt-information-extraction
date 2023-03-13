@@ -1,1 +1,6 @@
-__pycache__
+**/__pycache__
+env/
+data/
+test*
+.vscode/
+*.h5
