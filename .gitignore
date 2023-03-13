@@ -2,3 +2,5 @@
 env/
 data/
 test*
+.vscode/
+*.h5
