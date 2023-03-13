@@ -10,8 +10,7 @@ class InvoiceExtraction:
         self.model = model
 
     # Chuyển hình ảnh về hình vuông kích thước 256x256 bằng các thêm padding
-    def reduce_size(self, path, size=-1, padding=0):
-        or_image = Image.open(path)
+    def _reduce_size(self, or_image, size=-1, padding=0):
         or_image = ImageOps.grayscale(or_image)
         if size == -1:
             new_img = ImageOps.expand(or_image, padding)
@@ -38,7 +37,7 @@ class InvoiceExtraction:
 
         return np.uint8(new_img)/255, np.uint8(or_image)
 
-    def drawRectangle(img, biggest, thickness):
+    def _drawRectangle(img, biggest, thickness):
         cv2.line(img, (biggest[0][0][0], biggest[0][0][1]), (biggest[1][0][0], biggest[1][0][1]), (0, 255, 0),
                  thickness)
         cv2.line(img, (biggest[0][0][0], biggest[0][0][1]), (biggest[2][0][0], biggest[2][0][1]), (0, 255, 0),
@@ -51,7 +50,7 @@ class InvoiceExtraction:
         return img
 
     # Sắp xếp các tọa độ của ảnh
-    def order_points(self, pts):
+    def _order_points(self, pts):
         rect = np.zeros((4, 2), dtype='float32')
         pts = np.array(pts)
         s = pts.sum(axis=1)
@@ -64,7 +63,7 @@ class InvoiceExtraction:
         return rect.astype('int').tolist()
 
     # Xác định tọa độ mà ta muốn tham chiếu tới (Cụ thể là ta muốn tham chiều đầu vào về hình chữ nhật)
-    def find_dest(self, pts):
+    def _find_dest(self, pts):
         (tl, tr, br, bl) = pts
         widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
         widthB = np.sqrt(((tr[0] - tl[0]) ** 2) + ((tr[1] - tl[1]) ** 2))
@@ -75,16 +74,9 @@ class InvoiceExtraction:
         maxHeight = max(int(heightA), int(heightB))
         destination_corners = [[0, 0], [maxWidth, 0], [maxWidth, maxHeight], [0, maxHeight]]
 
-        return self.order_points(destination_corners)
+        return self._order_points(destination_corners)
 
     # Chuyển ảnh về trắng đen
-    def thresh_hold(self, image, threshold = 175):
-        blurred = cv2.GaussianBlur(image, (7, 7), 0)
-        (T, thresh) = cv2.threshold(blurred, threshold, 255,
-                                       cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-        return thresh
-
-
     def adaptive_binary_image(self, image, mode='mean', block_size=11, constant=2):
         image = np.array(image)
         if mode == 'mean':
@@ -101,9 +93,9 @@ class InvoiceExtraction:
         return binary_image
 
     # Dựng ảnh bị nghiêng lên
-    def warp_perspective(self, image_path):
+    def warp_perspective(self, or_image):
         # Reshape ảnh
-        image, or_img = self.reduce_size(image_path, 256, 10)
+        image, or_img = self._reduce_size(or_image, 256, 10)
 
         # Tạo mask
         mask = self.model.predict(image.reshape((1, image.shape[0], image.shape[0], 1))).reshape((256, 256))
@@ -130,9 +122,9 @@ class InvoiceExtraction:
         corners = (np.array(corners) * (or_img.shape[0] / image.shape[0])).tolist()
 
         # Tọa độ điểm của ảnh đầu vào
-        corners = self.order_points(corners)
+        corners = self._order_points(corners)
         # Tạo độ điểm của hình muốn tham chiếu
-        destination_corners = self.find_dest(corners)
+        destination_corners = self._find_dest(corners)
         # Tiến hành warp
         M = cv2.getPerspectiveTransform(np.float32(corners), np.float32(destination_corners))
         warp_img = cv2.warpPerspective(or_img, M, (destination_corners[2][0], destination_corners[2][1]),
@@ -141,36 +133,24 @@ class InvoiceExtraction:
 
 
     # Trích xuất Bill ra, gồm WarpPerspective và Threshold(chuyển trắng đen)
-    def extract(self, image_path):
-        warp_img = self.warp_perspective(image_path)
-        extracted_img = self.thresh_hold(warp_img)
+    def extract(self, image):
+        warp_img = self.warp_perspective(image)
+        extracted_img = self.binarize(warp_img)
         return extracted_img
 
 
     # Blur, reduce noise
-    def blur(self, image_path, blur=0):
-        if isinstance(image_path, np.ndarray):
-            image = image_path
-        else:
-            image, or_img = self.reduce_size(image_path, 256, 10)
+    def blur(self, image, blur=0):
         blur_img = cv2.GaussianBlur(image   , (5, 5), blur)
         return blur_img
 
     # Enhance the contrast, to balance with the blur
-    def enhance_contract(self, image_path, factor=1.5):
-        if isinstance(image_path, np.ndarray):
-            image = image_path
-        else:
-            image, or_img = self.reduce_size(image_path, 256, 10)
+    def enhance_contrast(self, image, factor=1.5):
         enhancer = ImageEnhance.Contrast(Image.fromarray(image))
         enhanced_img = enhancer.enhance(factor)
         return enhanced_img
 
-    def enhance_sharp(self, image_path, factor=1.5):
-        if isinstance(image_path, np.ndarray):
-            image = image_path
-        else:
-            image, or_img = self.reduce_size(image_path, 256, 10)
+    def enhance_sharp(self, image, factor=1.5):
         enhancer = ImageEnhance.Sharpness(Image.fromarray(image))
         enhanced_img = enhancer.enhance(factor)
         return enhanced_img
