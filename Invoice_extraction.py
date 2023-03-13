@@ -110,14 +110,13 @@ class InvoiceExtraction:
         Returns:
           The binary image is being returned.
         """
-        image = np.asarray(image)
         if mode == 'mean':
-            binary_image = cv2.adaptiveThreshold(image, 255,
+            binary_image = cv2.adaptiveThreshold(np.array(image), 255,
                                                  cv2.ADAPTIVE_THRESH_MEAN_C,
                                                  cv2.THRESH_BINARY,
                                                  block_size, constant)
         elif mode == 'gaussian':
-            binary_image = cv2.adaptiveThreshold(image, 255,
+            binary_image = cv2.adaptiveThreshold(np.array(image), 255,
                                                  cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                                  cv2.THRESH_BINARY,
                                                  block_size, constant)
