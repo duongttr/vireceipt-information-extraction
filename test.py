@@ -23,13 +23,13 @@ waiting = ['Từ từ thì cháo mới nhừ', "Đợi xíu má", "Waiting for y
 # UI
 st.set_page_config(
     page_title='Bill Information Extractor',
-    page_icon='💸'
+    page_icon='💸',
 )
-
-uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
 
 st.header('Project demo')
 st.sidebar.header('Tool Bar')
+
+uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
 
 options = st.sidebar.multiselect('Choose transformation', list(fn.keys()))
 process_button = st.sidebar.button('Process')
