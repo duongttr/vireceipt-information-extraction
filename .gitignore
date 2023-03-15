@@ -4,3 +4,11 @@ data/
 test*
 .vscode/
 *.h5
+dataset/
+raw_data/
+test/
+tmp/
+models/
+*.gz
+*.zip
+.DS_Store
