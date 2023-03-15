@@ -1,9 +1,54 @@
 import numpy as np
 from dataset import ner_tags_list
 from datasets import load_metric
+from PIL import ImageDraw, ImageFont
 
 
 metric = load_metric("seqeval")
+
+def unnormalize_box(bbox, width, height):
+     return [
+         width * (bbox[0] / 1000),
+         height * (bbox[1] / 1000),
+         width * (bbox[2] / 1000),
+         height * (bbox[3] / 1000)
+     ]
+
+def normalize_box(bbox, width, height):
+    return [
+        int((bbox[0] / width) * 1000),
+        int((bbox[1] / height) * 1000),
+        int((bbox[2] / width) * 1000),
+        int((bbox[3] / height) * 1000)
+    ]
+
+def draw_output(image, logits, id2label, label2id, token_boxes, offset_mapping):
+    def iob_to_label(label):
+        label = label
+        if not label:
+            return 'other'
+        return label
+    
+    width, height = image.size
+    
+    predictions = logits.argmax(-1).squeeze().tolist()
+    is_subword = np.array(offset_mapping)[:,0] != 0
+    true_predictions = [id2label[pred] for idx, pred in enumerate(predictions) if not is_subword[idx]]
+    true_boxes = [unnormalize_box(box, width, height) for idx, box in enumerate(token_boxes) if not is_subword[idx]]
+    
+    
+    
+    # draw
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.load_default()
+    
+    for prediction, box in zip(true_predictions, true_boxes):
+        predicted_label = iob_to_label(prediction).lower()
+        draw.rectangle(box, outline='red')
+        draw.text((box[0] + 10, box[1] - 10), text=predicted_label, fill='red', font=font)
+    
+    return image
+
 def compute_metrics(p, return_entity_level_metrics=False):
     predictions, labels = p
     predictions = np.argmax(predictions, axis=2)
