@@ -2,3 +2,6 @@ dataset/
 raw_data/
 test/
 tmp/
+models/
+
+.DS_Store
