@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps, ImageEnhance
 from matplotlib import pyplot as plt
+from scipy import ndimage
+
 
 class InvoiceExtraction:
 
@@ -9,7 +11,7 @@ class InvoiceExtraction:
         """
         The function __init__() is a special function in Python classes. It is run as soon as an object
         of a class is instantiated. The method __init__() is similar to constructors in C++ and Java
-        
+
         Args:
           model: The model to be used for prediction.
         """
@@ -18,12 +20,12 @@ class InvoiceExtraction:
     def _reduce_size(self, or_image, size=-1, padding=0):
         """
         It takes an image, resizes it to a given size, and then pads it with zeros to make it square
-        
+
         Args:
           or_image: The original image
           size: The size of the image. If -1, the image will be resized to the max size of the image.
           padding: The amount of padding to add to the image. Defaults to 0
-        
+
         Returns:
           a tuple of two images. The first image is the resized image with the padding. The second image
         is the original image with the padding.
@@ -42,13 +44,17 @@ class InvoiceExtraction:
         new_size = image.size
         delta_w = size - new_size[0] + padding
         delta_h = size - new_size[1] + padding
-        new_padding = (delta_w // 2, delta_h // 2, delta_w - (delta_w // 2), delta_h - (delta_h // 2))
+        new_padding = (delta_w // 2, delta_h // 2, delta_w -
+                       (delta_w // 2), delta_h - (delta_h // 2))
         new_img = ImageOps.expand(image, new_padding)
 
         or_size = or_image.size
-        delta_w = max(or_size) - or_size[0] + padding * int(max(or_image.size) / (size + padding))
-        delta_h = max(or_size) - or_size[1] + padding * int(max(or_image.size) / (size + padding))
-        or_padding = (delta_w // 2, delta_h // 2, delta_w - (delta_w // 2), delta_h - (delta_h // 2))
+        delta_w = max(or_size) - or_size[0] + padding * \
+            int(max(or_image.size) / (size + padding))
+        delta_h = max(or_size) - or_size[1] + padding * \
+            int(max(or_image.size) / (size + padding))
+        or_padding = (delta_w // 2, delta_h // 2, delta_w -
+                      (delta_w // 2), delta_h - (delta_h // 2))
         or_image = ImageOps.expand(or_image, or_padding)
 
         return Image.fromarray(np.uint8(new_img)/255), Image.fromarray(np.uint8(or_image))
@@ -57,10 +63,10 @@ class InvoiceExtraction:
         """
         The function takes in a list of points and returns a list of points in the following order:
         top-left, top-right, bottom-right, bottom-left
-        
+
         Args:
           pts: The points that we want to order.
-        
+
         Returns:
           The four points of the rectangle.
         """
@@ -78,7 +84,7 @@ class InvoiceExtraction:
     def _find_dest(self, pts):
         """
         Given a list of points, find the point that is closest to the origin
-        
+
         Args:
           pts: a list of points, each point is a list of two numbers, the first number is the x
         coordinate, the second number is the y coordinate.
@@ -91,7 +97,8 @@ class InvoiceExtraction:
         heightA = np.sqrt(((tr[0] - br[0]) ** 2) + ((tr[1] - br[1]) ** 2))
         heightB = np.sqrt(((tl[0] - bl[0]) ** 2) + ((tl[1] - bl[1]) ** 2))
         maxHeight = max(int(heightA), int(heightB))
-        destination_corners = [[0, 0], [maxWidth, 0], [maxWidth, maxHeight], [0, maxHeight]]
+        destination_corners = [[0, 0], [maxWidth, 0],
+                               [maxWidth, maxHeight], [0, maxHeight]]
 
         return self._order_points(destination_corners)
 
@@ -99,14 +106,14 @@ class InvoiceExtraction:
         """
         It takes an image, and returns a binary image where the threshold is determined by the mean or
         gaussian of the surrounding pixels
-        
+
         Args:
           image: The image to be thresholded.
           mode: 'mean' or 'gaussian'. Defaults to mean
           block_size: The size of the neighborhood area. Defaults to 11
           constant: It is the constant subtracted from the mean or weighted mean. Normally, it is
         positive but may be zero or negative as well. Defaults to 2
-        
+
         Returns:
           The binary image is being returned.
         """
@@ -130,14 +137,17 @@ class InvoiceExtraction:
         image, or_img = np.asarray(image), np.asarray(or_image)
 
         # Tạo mask
-        mask = self.model.predict(image.reshape((1, image.shape[0], image.shape[0], 1))).reshape((256, 256))
+        mask = self.model.predict(image.reshape(
+            (1, image.shape[0], image.shape[0], 1))).reshape((256, 256))
 
         # Bộ lọc cạnh
         canny = cv2.Canny(np.uint8(mask*255), 0, 200)
         # Làm các cạnh liền mạch không đứt gãy
-        canny = cv2.dilate(canny, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
+        canny = cv2.dilate(canny, cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (5, 5)))
         # Xác định các cạnh
-        contours, hierarchy = cv2.findContours(canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(
+            canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         # Chọn 5 vùng có diện tích lớn nhất
         page = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
@@ -151,18 +161,19 @@ class InvoiceExtraction:
 
         # Chuyển các tọa độ góc về kích thước ban đầu để trích xuất bill từ ảnh gốc chứ không phải ảnh reshape
         corners = sorted(np.concatenate(corners).tolist())
-        corners = (np.array(corners) * (or_img.shape[0] / image.shape[0])).tolist()
+        corners = (np.array(corners) *
+                   (or_img.shape[0] / image.shape[0])).tolist()
 
         # Tọa độ điểm của ảnh đầu vào
         corners = self._order_points(corners)
         # Tạo độ điểm của hình muốn tham chiếu
         destination_corners = self._find_dest(corners)
         # Tiến hành warp
-        M = cv2.getPerspectiveTransform(np.float32(corners), np.float32(destination_corners))
+        M = cv2.getPerspectiveTransform(np.float32(
+            corners), np.float32(destination_corners))
         warp_img = cv2.warpPerspective(or_img, M, (destination_corners[2][0], destination_corners[2][1]),
-                                    flags=cv2.INTER_LINEAR)
+                                       flags=cv2.INTER_LINEAR)
         return Image.fromarray(warp_img)
-
 
     def extract(self, image):
         return self.adaptive_binary_image(self.warp_perspective(image))
@@ -170,7 +181,7 @@ class InvoiceExtraction:
     def blur(self, image, blur=0):
         """
         It takes an image and a blur value, and returns a blurred image
-        
+
         Args:
           image: The image to be blurred.
           blur: The amount of blur to apply to the image. Defaults to 0
@@ -182,7 +193,7 @@ class InvoiceExtraction:
         """
         It takes an image and a factor, and returns a new image with the contrast enhanced by the given
         factor
-        
+
         Args:
           image: The image to be enhanced.
           factor: The factor by which to increase the contrast.
@@ -194,7 +205,7 @@ class InvoiceExtraction:
     def enhance_sharp(self, image, factor=1.5):
         """
         It takes an image and a factor, and returns a sharpened version of the image
-        
+
         Args:
           image: The image to be sharpened.
           factor: The amount of sharpening to apply.
@@ -203,15 +214,34 @@ class InvoiceExtraction:
         enhanced_img = enhancer.enhance(factor)
         return enhanced_img
 
+    def get_canny(self, image):
+        # edge extraction
+        or_size = np.array(image).shape
+        image, _ = self._reduce_size(image, 256, 10)
+        image = np.asarray(image)
+        mask = self.model.predict(image.reshape(
+            (1, image.shape[0], image.shape[0], 1))).reshape((256, 256))
+        canny = cv2.Canny(np.uint8(mask * 255), 0, 200)
+
+        # Convert to origin size
+        zoom = ndimage.zoom(canny, or_size[0]/image.shape[0])
+        x = (zoom.shape[0] - or_size[0])//2
+        y = (zoom.shape[1] - or_size[1])//2
+        crop = zoom[x:(zoom.shape[0]-x), y:(zoom.shape[1]-y)]
+
+        return Image.fromarray(crop)
+
+
 class Utils():
     def __init__(self):
         pass
-    def plot_results(self, results: dict, fig_size = (8,8), rows=1):
+
+    def plot_results(self, results: dict, fig_size=(8, 8), rows=1):
         columns = int(len(results.keys())/rows)
-        
+
         names = list(results.keys())
         fig = plt.figure(figsize=fig_size)
-        for i in range(len(names)):        
+        for i in range(len(names)):
             subplot = fig.add_subplot(rows, columns, i+1)
             subplot.title.set_text(names[i])
             plt.imshow(results[names[i]], cmap='gray')
