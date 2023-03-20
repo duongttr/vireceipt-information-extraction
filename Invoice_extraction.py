@@ -185,7 +185,7 @@ class InvoiceExtraction:
           image: The image to be blurred.
           blur: The amount of blur to apply to the image. 
           blur parameter is standard deviation having range in [0, Infinity], 
-          Increase opacity by increasing kernel size or blur parameter
+          Increase blur by increasing kernel size or blur parameter
         """
         blur_img = cv2.GaussianBlur(np.asarray(image), (5, 5), blur)
         return Image.fromarray(blur_img)
