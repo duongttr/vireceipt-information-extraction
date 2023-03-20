@@ -134,7 +134,7 @@ class InvoiceExtraction:
     def warp_perspective(self, or_image):
         # Reshape ảnh
         image, or_img = self._reduce_size(or_image, 256, 10)
-        image, or_img = np.asarray(image), np.asarray(or_image)
+        image, or_img = np.asarray(image), np.asarray(or_img)
 
         # Tạo mask
         mask = self.model.predict(image.reshape(
@@ -184,7 +184,9 @@ class InvoiceExtraction:
 
         Args:
           image: The image to be blurred.
-          blur: The amount of blur to apply to the image. Defaults to 0
+          blur: The amount of blur to apply to the image. 
+          blur parameter is standard deviation having range in [0, Infinity], 
+          Increase opacity by increasing kernel size or blur parameter
         """
         blur_img = cv2.GaussianBlur(np.asarray(image), (5, 5), blur)
         return Image.fromarray(blur_img)
@@ -196,7 +198,10 @@ class InvoiceExtraction:
 
         Args:
           image: The image to be enhanced.
-          factor: The factor by which to increase the contrast.
+          factor: A floating point value controlling the enhancement. 
+          Factor 1.0 always returns a copy of the original image, 
+          lower factors mean less contrast, and higher values more. 
+          There are no restrictions on this value.
         """
         enhancer = ImageEnhance.Contrast(image)
         enhanced_img = enhancer.enhance(factor)
@@ -208,7 +213,10 @@ class InvoiceExtraction:
 
         Args:
           image: The image to be sharpened.
-          factor: The amount of sharpening to apply.
+          factor: A floating point value controlling the enhancement. 
+          Factor 1.0 always returns a copy of the original image, 
+          lower factors mean less sharp, and higher values more. 
+          There are no restrictions on this value.
         """
         enhancer = ImageEnhance.Sharpness(image)
         enhanced_img = enhancer.enhance(factor)
