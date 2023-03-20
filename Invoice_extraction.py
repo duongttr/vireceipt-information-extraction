@@ -55,7 +55,7 @@ class InvoiceExtraction:
 
     def _order_points(self, pts):
         """
-        The function takes in a list of points and returns a list of points in the following order:
+        The function takes in a list of points and returns a list of points in te following order:
         top-left, top-right, bottom-right, bottom-left
         
         Args:
@@ -128,7 +128,7 @@ class InvoiceExtraction:
     def warp_perspective(self, or_image):
         # Reshape ảnh
         image, or_img = self._reduce_size(or_image, 256, 10)
-        image, or_img = np.asarray(image), np.asarray(or_image)
+        image, or_img = np.asarray(image), np.asarray(or_img)
 
         # Tạo mask
         mask = self.model.predict(image.reshape((1, image.shape[0], image.shape[0], 1))).reshape((256, 256))
