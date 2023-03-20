@@ -110,9 +110,8 @@ class InvoiceExtraction:
         Args:
           image: The image to be thresholded.
           mode: 'mean' or 'gaussian'. Defaults to mean
-          block_size: The size of the neighborhood area. Defaults to 11
-          constant: It is the constant subtracted from the mean or weighted mean. Normally, it is
-        positive but may be zero or negative as well. Defaults to 2
+          block_size: Size of a pixel neighborhood that is used to calculate a threshold value for the pixel: 3, 5, 7, and so on.
+          constant: Constant subtracted from the mean or weighted mean (see the details below). Normally, it is positive but may be zero or negative as well.
 
         Returns:
           The binary image is being returned.
