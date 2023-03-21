@@ -7,7 +7,7 @@ import os
 import numpy as np
 from transformers import AutoProcessor
 
-ner_tags_list = open('classes.txt', 'r').readlines()
+ner_tags_list = [cls.strip() for cls in open('classes.txt', 'r').readlines()]
 
 id2label = {k: v for k, v in enumerate(ner_tags_list)}
 label2id = {v: k for k, v in enumerate(ner_tags_list)}
