@@ -26,7 +26,7 @@ class LayoutLMv3Dataset:
     
     def get_dataset(self):
         dataset = load_dataset('json', data_files=self.data_path_dict)
-        dataset = dataset.map(self.__mapping, num_proc=4, remove_columns=['size'])
+        dataset = dataset.map(self.__mapping, num_proc=1, remove_columns=['size'])
         
         column_names = dataset["train"].column_names
         
