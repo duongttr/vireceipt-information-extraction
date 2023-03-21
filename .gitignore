@@ -3,5 +3,6 @@ raw_data/
 test/
 tmp/
 models/
+images/
 
 .DS_Store
