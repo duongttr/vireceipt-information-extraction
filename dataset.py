@@ -48,7 +48,7 @@ class LayoutLMv3Dataset:
         boxes = examples[self.boxes_column_name]
         word_labels = examples[self.label_column_name]
         encoding = processor(images, words, boxes=boxes, word_labels=word_labels,
-                            truncation=True, padding="max_length")
+                            truncation=True, max_length=512, padding="max_length")
         
         encoding['pixel_values'] = encoding['pixel_values'][0]
         return encoding

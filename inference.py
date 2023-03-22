@@ -10,9 +10,9 @@ import numpy as np
 class LayoutLMv3:
     def __init__(self,
                  processor_pretrained='microsoft/layoutlmv3-base',
-                 layoutlm_pretrained='models/checkpoint-12-mar-2023',
+                 layoutlm_pretrained='models/checkpoint-4000',
                  yolo_pretrained='models/best.pt',
-                 tessdata_pretrained='models/tessdata/'):
+                 tessdata_pretrained='models/tessdata'):
         self.processor = AutoProcessor.from_pretrained(processor_pretrained, apply_ocr=False)
         self.lalm_model = AutoModelForTokenClassification.from_pretrained(layoutlm_pretrained)
         self.yolo_model = YOLO(yolo_pretrained)
@@ -28,14 +28,16 @@ class LayoutLMv3:
             tlx,tly,brx,bry = int(box[0]), int(box[1]), int(box[2]), int(box[3])
             normalized_boxes.append(normalize_box(box, input_image.width, input_image.height))
             image_cropped = input_image.crop((tlx-3, tly-3, brx+3, bry+3))
-            data = pytesseract.image_to_string(image_cropped, config=f'--oem 2 --psm 3 --tessdata-dir {self.tess_path}', lang='vie', output_type=pytesseract.Output.DICT)
+            data = pytesseract.image_to_string(image_cropped, config=f'--oem 3 --psm 6 --tessdata-dir {self.tess_path}', lang='vie', output_type=pytesseract.Output.DICT)
             texts.append(data['text'].strip())
-            # image_cropped.save(f"output/test{str(box)}.jpg")
         
         encoding = self.processor(input_image, texts, 
                                   boxes=normalized_boxes, 
                                   return_offsets_mapping=True, 
-                                  return_tensors='pt')
+                                  return_tensors='pt',
+                                  max_length=512,
+                                  trucation=True,
+                                  padding='max_length')
         offset_mapping = encoding.pop('offset_mapping')
         
         with torch.no_grad():
@@ -84,7 +86,6 @@ if __name__ == '__main__':
     model = LayoutLMv3()
     
     from PIL import Image
-    input_image = Image.open('/Users/jaydentran1909/Pet Projects/bill-information-extraction/dataset/images/mcocr_public_145014ymhqd_jpg.rf.412ad8d143240d95330b7c55d83bc95f.jpg')
+    input_image = Image.open('/Users/jaydentran1909/Pet Projects/bill-information-extraction/dataset/images/mcocr_public_145013jechb_jpg.rf.59cd6fa9483f151d24908097ee2bf72f.jpg')
     results = model.predict(input_image, output_path='output')
     print(results)
-    

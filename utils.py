@@ -22,19 +22,19 @@ def normalize_box(bbox, width, height):
         int((bbox[3] / height) * 1000)
     ]
 
-def draw_output(image, logits, id2label, label2id, token_boxes, offset_mapping):
+def draw_output(image, true_predictions, true_boxes):
     def iob_to_label(label):
         label = label
         if not label:
             return 'other'
         return label
     
-    width, height = image.size
+    # width, height = image.size
     
-    predictions = logits.argmax(-1).squeeze().tolist()
-    is_subword = np.array(offset_mapping)[:,0] != 0
-    true_predictions = [id2label[pred] for idx, pred in enumerate(predictions) if not is_subword[idx]]
-    true_boxes = [unnormalize_box(box, width, height) for idx, box in enumerate(token_boxes) if not is_subword[idx]]
+    # predictions = logits.argmax(-1).squeeze().tolist()
+    # is_subword = np.array(offset_mapping)[:,0] != 0
+    # true_predictions = [id2label[pred] for idx, pred in enumerate(predictions) if not is_subword[idx]]
+    # true_boxes = [unnormalize_box(box, width, height) for idx, box in enumerate(token_boxes) if not is_subword[idx]]
     
     
     
