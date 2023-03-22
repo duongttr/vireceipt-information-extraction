@@ -4,39 +4,41 @@ from ultralytics import YOLO
 import pytesseract
 import torch
 import os
-from utils import draw_output, normalize_box, unnormalize_box
+from utils import draw_output, normalize_box, unnormalize_box, ReFormatter
 import numpy as np
+import json
 
 class LayoutLMv3:
     def __init__(self,
                  processor_pretrained='microsoft/layoutlmv3-base',
-                 layoutlm_pretrained='models/checkpoint-4000',
+                 layoutlm_pretrained='models/checkpoint-5000',
                  yolo_pretrained='models/best.pt',
                  tessdata_pretrained='models/tessdata'):
         self.processor = AutoProcessor.from_pretrained(processor_pretrained, apply_ocr=False)
         self.lalm_model = AutoModelForTokenClassification.from_pretrained(layoutlm_pretrained)
         self.yolo_model = YOLO(yolo_pretrained)
         self.tess_path = tessdata_pretrained
-        # self.tesseract_cfg = tesseract_custom_config
     
     def predict(self, input_image, output_path=None):
-        # input_image = Image.open(image_path)
-        bboxes = self.yolo_model.predict(source=input_image, conf=0.1)[0].boxes.xyxy.int()
+        bboxes = self.yolo_model.predict(source=input_image, conf=0.15, iou=0.1)[0].boxes.xyxy.int()
+        mapping_bbox_texts = {}
         texts = []
         normalized_boxes = []
+        
         for box in bboxes:
             tlx,tly,brx,bry = int(box[0]), int(box[1]), int(box[2]), int(box[3])
             normalized_boxes.append(normalize_box(box, input_image.width, input_image.height))
             image_cropped = input_image.crop((tlx-3, tly-3, brx+3, bry+3))
             data = pytesseract.image_to_string(image_cropped, config=f'--oem 3 --psm 6 --tessdata-dir {self.tess_path}', lang='vie', output_type=pytesseract.Output.DICT)
-            texts.append(data['text'].strip())
+            text = data['text'].strip().replace('\n', ' ')
+            texts.append(text)
+            mapping_bbox_texts[','.join(map(str, normalized_boxes[-1]))] = text
         
         encoding = self.processor(input_image, texts, 
                                   boxes=normalized_boxes, 
                                   return_offsets_mapping=True, 
                                   return_tensors='pt',
                                   max_length=512,
-                                  trucation=True,
                                   padding='max_length')
         offset_mapping = encoding.pop('offset_mapping')
         
@@ -44,7 +46,6 @@ class LayoutLMv3:
             outputs = self.lalm_model(**encoding)
         
         id2label = self.lalm_model.config.id2label
-        #label2id = self.lalm_model.config.label2id
         logits = outputs.logits
         token_boxes = encoding.bbox.squeeze().tolist()
         offset_mapping = offset_mapping.squeeze().tolist()
@@ -55,13 +56,11 @@ class LayoutLMv3:
         true_predictions = []
         true_boxes = []
         true_texts = []
-        text_idx = 0
-        for idx in range(1, len(predictions)-1):
-            if not is_subword[idx]:
+        for idx in range(len(predictions)):
+            if not is_subword[idx] and token_boxes[idx] != [0,0,0,0]:
                 true_predictions.append(id2label[predictions[idx]])
                 true_boxes.append(unnormalize_box(token_boxes[idx], input_image.width, input_image.height))
-                true_texts.append(texts[text_idx])
-                text_idx += 1
+                true_texts.append(mapping_bbox_texts.get(','.join(map(str,token_boxes[idx])), ''))
         
         if isinstance(output_path, str):
             os.makedirs(output_path, exist_ok=True)
@@ -73,19 +72,11 @@ class LayoutLMv3:
             img_output.save(os.path.join(output_path,'result.jpg'))
         
         final_results = []
-        for box, text, label in zip(true_boxes, texts, true_predictions):
+        for box, text, label in zip(true_boxes, true_texts, true_predictions):
             final_results.append({
                 'box': box,
-                'text': text,
+                'text': ReFormatter(text, label),
                 'label': label
             })
-        return final_results
-        
-
-if __name__ == '__main__':
-    model = LayoutLMv3()
     
-    from PIL import Image
-    input_image = Image.open('/Users/jaydentran1909/Pet Projects/bill-information-extraction/dataset/images/mcocr_public_145013jechb_jpg.rf.59cd6fa9483f151d24908097ee2bf72f.jpg')
-    results = model.predict(input_image, output_path='output')
-    print(results)
+        return json.dumps(final_results)

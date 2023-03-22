@@ -49,6 +49,9 @@ def draw_output(image, true_predictions, true_boxes):
     
     return image
 
+def ReFormatter(text, cls):
+    return text
+
 def compute_metrics(p, return_entity_level_metrics=False):
     predictions, labels = p
     predictions = np.argmax(predictions, axis=2)
