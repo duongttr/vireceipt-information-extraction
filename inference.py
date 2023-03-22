@@ -26,8 +26,10 @@ class LayoutLMv3:
         normalized_boxes = []
         
         for box in bboxes:
-            tlx,tly,brx,bry = int(box[0]), int(box[1]), int(box[2]), int(box[3])
-            normalized_boxes.append(normalize_box(box, input_image.width, input_image.height))
+            tlx, tly, brx, bry = int(box[0]), int(
+                box[1]), int(box[2]), int(box[3])
+            normalized_boxes.append(normalize_box(
+                box, input_image.width, input_image.height))
             image_cropped = input_image.crop((tlx-3, tly-3, brx+3, bry+3))
             data = pytesseract.image_to_string(image_cropped, config=f'--oem 3 --psm 6 --tessdata-dir {self.tess_path}', lang='vie', output_type=pytesseract.Output.DICT)
             text = data['text'].strip().replace('\n', ' ')
@@ -41,7 +43,7 @@ class LayoutLMv3:
                                   max_length=512,
                                   padding='max_length')
         offset_mapping = encoding.pop('offset_mapping')
-        
+
         with torch.no_grad():
             outputs = self.lalm_model(**encoding)
         

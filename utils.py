@@ -2,17 +2,21 @@ import numpy as np
 from dataset import ner_tags_list
 from datasets import load_metric
 from PIL import ImageDraw, ImageFont
+import json
+import pandas as pd
 
 
 metric = load_metric("seqeval")
 
+
 def unnormalize_box(bbox, width, height):
-     return [
-         width * (bbox[0] / 1000),
-         height * (bbox[1] / 1000),
-         width * (bbox[2] / 1000),
-         height * (bbox[3] / 1000)
-     ]
+    return [
+        width * (bbox[0] / 1000),
+        height * (bbox[1] / 1000),
+        width * (bbox[2] / 1000),
+        height * (bbox[3] / 1000)
+    ]
+
 
 def normalize_box(bbox, width, height):
     return [
@@ -41,12 +45,13 @@ def draw_output(image, true_predictions, true_boxes):
     # draw
     draw = ImageDraw.Draw(image)
     font = ImageFont.load_default()
-    
+
     for prediction, box in zip(true_predictions, true_boxes):
         predicted_label = iob_to_label(prediction).lower()
         draw.rectangle(box, outline='red')
-        draw.text((box[0] + 10, box[1] - 10), text=predicted_label, fill='red', font=font)
-    
+        draw.text((box[0] + 10, box[1] - 10),
+                  text=predicted_label, fill='red', font=font)
+
     return image
 
 def ReFormatter(text, cls):
@@ -66,7 +71,8 @@ def compute_metrics(p, return_entity_level_metrics=False):
         for prediction, label in zip(predictions, labels)
     ]
 
-    results = metric.compute(predictions=true_predictions, references=true_labels)
+    results = metric.compute(
+        predictions=true_predictions, references=true_labels)
     if return_entity_level_metrics:
         # Unpack nested dictionaries
         final_results = {}
@@ -84,3 +90,12 @@ def compute_metrics(p, return_entity_level_metrics=False):
             "f1": results["overall_f1"],
             "accuracy": results["overall_accuracy"],
         }
+
+
+# def create_json(boxes, texts, labels,
+#                 chosen_labels=['ADDR', 'BILLID', 'DATETIME', 'CASHIER', 'SHOP_NAME',
+#                                'PHONE', 'NUMBER', 'PRODUCT_NAME', 'UNIT', 'AMOUNT',
+#                                'UPRICE', 'TAMOUNT', 'TPRICE', 'SUB_TPRICE']):
+
+
+#     return json.dumps(final_result)

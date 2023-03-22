@@ -1,3 +1,9 @@
+**/__pycache__
+env/
+data/
+test*
+.vscode/
+*.h5
 dataset/
 raw_data/
 test/
@@ -7,3 +13,6 @@ images/
 
 .DS_Store
 __pycache__
+*.gz
+*.zip
+.DS_Store
