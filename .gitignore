@@ -1,7 +1,6 @@
 **/__pycache__
 env/
 data/
-test*
 .vscode/
 *.h5
 dataset/

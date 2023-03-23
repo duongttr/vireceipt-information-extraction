@@ -4,7 +4,7 @@
 - **Receipt information extraction** has numerous practical applications, such as in accounting, expense tracking, and financial analysis. By automating the extraction of receipt information, businesses can save time and reduce errors associated with manual data entry.
 - In this project, we focus on working with Vietnamese-language’s receipt.
 
-![Receipt Annotation](assets/test.jpg)
+![Receipt Annotation](images/test.jpg)
 
 # Members
 - Duong T. Thanh
