@@ -10,7 +10,8 @@ import os
 def main(args):
     train_path = os.path.join(args.dataset_path, "train.json")
     val_path = os.path.join(args.dataset_path, "val.json")
-    dataset = LayoutLMv3Dataset(data_path_dict={'train': train_path, 'val': val_path}).get_dataset()
+    dataset = LayoutLMv3Dataset(
+        data_path_dict={'train': train_path, 'val': val_path}).get_dataset()
     train_dataset = dataset['train']
     val_dataset = dataset['val']
 
@@ -19,19 +20,19 @@ def main(args):
 
     # Init model
     model = LayoutLMv3ForTokenClassification.from_pretrained("microsoft/layoutlmv3-base",
-                                                            id2label=id2label,
-                                                            label2id=label2id)
+                                                             id2label=id2label,
+                                                             label2id=label2id)
 
     # Configure training arugments
     training_args = TrainingArguments(output_dir=args.output_dir,
-                                    max_steps=args.max_steps,
-                                    per_device_train_batch_size=args.batch_size,
-                                    per_device_eval_batch_size=args.batch_size,
-                                    learning_rate=args.learning_rate,
-                                    evaluation_strategy="steps",
-                                    eval_steps=args.eval_steps,
-                                    load_best_model_at_end=args.load_best_model_at_end,
-                                    metric_for_best_model=args.metric_for_best_model)
+                                      max_steps=args.max_steps,
+                                      per_device_train_batch_size=args.batch_size,
+                                      per_device_eval_batch_size=args.batch_size,
+                                      learning_rate=args.learning_rate,
+                                      evaluation_strategy="steps",
+                                      eval_steps=args.eval_steps,
+                                      load_best_model_at_end=args.load_best_model_at_end,
+                                      metric_for_best_model=args.metric_for_best_model)
 
     # Start training
     trainer = Trainer(
@@ -44,7 +45,8 @@ def main(args):
         compute_metrics=compute_metrics,
     )
 
-    trainer.train()    
+    trainer.train()
+
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -56,5 +58,5 @@ if __name__ == "__main__":
     parser.add_argument("--eval_steps", type=int, default=100)
     parser.add_argument("--load_best_model_at_end", type=bool, default=True)
     parser.add_argument("--metric_for_best_model", type=str, default="f1")
-    
+
     main(parser.parse_args())

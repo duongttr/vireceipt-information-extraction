@@ -1,11 +1,12 @@
-from Canny import Canny
-from Invoice_extraction import InvoiceExtraction
+# from Canny import Canny
+from process import Process
 
 import streamlit as st
 from PIL import Image
 from tensorflow.keras.models import load_model
 import random
 from inference import LayoutLMv3
+import pandas as pd
 
 # UI
 st.set_page_config(
@@ -22,30 +23,40 @@ uploaded_file = st.file_uploader(
 
 @st.cache_resource
 def init_models():
-    model_path = r'Invoice_Segmentation_model.h5'
+    model_path = r'models/Invoice_Segmentation_model.h5'
     model = load_model(model_path, compile=False)
-    processor = InvoiceExtraction(model)
+    processor = Process(model)
     extractor = LayoutLMv3()
     return processor, extractor
 
 
 processor, extractor = init_models()
 
-fn = {'Warp': processor.warp_perspective,
-      'Blur': processor.blur,
-      'Contrast': processor.enhance_contrast,
-      'Sharp': processor.enhance_sharp,
-      'Binarize': processor.adaptive_binary_image,
-      'Canny': processor.get_canny,
-      }
+fn = {
+    'Warp': processor.warp_perspective,
+    'Blur': processor.blur,
+    'Contrast': processor.enhance_contrast,
+    'Sharp': processor.enhance_sharp,
+    'Binarize': processor.adaptive_binary_image,
+    'Canny': processor.get_canny,
+}
 
 waiting = ['Từ từ thì cháo mới nhừ', "Đợi xíu má", "Waiting for you",
            "Người thành công là người kiên nhẫn, người không kiên nhẫn là thành thụ"]
 
-
 options = st.sidebar.multiselect('Choose transformation', list(fn.keys()))
-process_button = st.sidebar.button('Process')
+for option in options:
+    if option == 'Blur':
+        blur = st.sidebar.text_input(
+            'Amount of blur', '0', help='The standard deviation value. The higher the standard deviation, the more blurred the image is')
+    if option == 'Contrast':
+        contrast = st.sidebar.text_input('Factor of contrasting', '1.5')
+    if option == 'Binarize':
+        mode = st.sidebar.selectbox('Mode', ['mean', 'gaussian'])
+        block_size = st.sidebar.text_input('Block size', '11')
+        constant = st.sidebar.text_input('Constant', '2')
 
+process_button = st.sidebar.button('Process')
 result = None
 with st.spinner(random.choice(waiting)):
     if uploaded_file:
@@ -61,21 +72,32 @@ with st.spinner(random.choice(waiting)):
             if process_button:
                 bin_image = image.convert('L')
                 for option in options:
-                    bin_image = fn[option](bin_image)
+                    if option == 'Warp':
+                        bin_image = fn[option](bin_image)
+                    elif option == 'Blur':
+                        bin_image = fn[option](bin_image, float(blur))
+                    elif option == 'Contrast':
+                        bin_image = fn[option](bin_image, float(contrast))
+                    elif option == 'Sharp':
+                        bin_image = fn[option](bin_image)
+                    elif option == 'Binarize':
+                        bin_image = fn[option](
+                            bin_image, mode, int(block_size), int(constant))
+                    elif option == 'Canny':
+                        bin_image = fn[option](bin_image)
             st.image(bin_image)
-            if process_button:
-                st.text('Processed image')
+            st.text('Processed image')
+
             if st.button('Extract info'):
                 result = extractor.predict(bin_image.convert('RGB'))
 
         if result:
-            st.json(result)
             st.download_button(
                 label="Download data as JSON",
                 data=result,
                 file_name='extracted_data.json',
-                mime='text/csv',
-            )
+                mime='application/json')
+            st.json(result, expanded=False)
 
     elif process_button:
         st.warning('Chọn hình đi ba')

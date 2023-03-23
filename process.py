@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from scipy import ndimage
 
 
-class InvoiceExtraction:
+class Process:
 
     def __init__(self, model):
         """
@@ -230,13 +230,7 @@ class InvoiceExtraction:
             (1, image.shape[0], image.shape[0], 1))).reshape((256, 256))
         canny = cv2.Canny(np.uint8(mask * 255), 0, 200)
 
-        # Convert to origin size
-        zoom = ndimage.zoom(canny, or_size[0]/image.shape[0])
-        x = (zoom.shape[0] - or_size[0])//2
-        y = (zoom.shape[1] - or_size[1])//2
-        crop = zoom[x:(zoom.shape[0]-x), y:(zoom.shape[1]-y)]
-
-        return Image.fromarray(crop)
+        return Image.fromarray(canny)
 
 
 class Utils():
