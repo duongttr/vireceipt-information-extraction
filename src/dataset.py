@@ -1,22 +1,10 @@
 from datasets import load_dataset
 from datasets import ClassLabel, Image
 import PIL.Image as PImage
-
-from functools import partial
 import os
-import numpy as np
 from transformers import AutoProcessor
 
-ner_tags_list = ['ADDR', 'NUMBER_PREFIX', 'TITLE', 'PRODUCT_NAME_PREFIX',
-       'PRODUCT_NAME', 'AMOUNT_PREFIX', 'AMOUNT', 'UNIT_PREFIX', 'UNIT',
-       'UPRICE_PREFIX', 'UPRICE', 'SUB_TPRICE_PREFIX', 'SUB_TPRICE',
-       'TAMOUNT_PREFIX', 'TAMOUNT', 'TPRICE_PREFIX', 'TPRICE',
-       'RECEMONEY_PREFIX', 'RECEMONEY', 'OTHER', 'BILLID_PREFIX',
-       'BILLID', 'DATETIME_PREFIX', 'DATETIME', 'CASHIER_PREFIX',
-       'CASHIER', 'SHOP_NAME', 'PHONE_PREFIX', 'FPRICE_PREFIX', 'FPRICE',
-       'REMAMONEY_PREFIX', 'REMAMONEY', 'PHONE', 'TDISCOUNT_PREFIX',
-       'TDISCOUNT', 'ADDR_PREFIX', 'NUMBER', 'FAX_PREFIX', 'FAX',
-       'UDISCOUNT_PREFIX', 'UDISCOUNT']
+ner_tags_list = [cls.strip() for cls in open('classes.txt', 'r').readlines()]
 
 id2label = {k: v for k, v in enumerate(ner_tags_list)}
 label2id = {v: k for k, v in enumerate(ner_tags_list)}

@@ -3,8 +3,7 @@ from transformers import AutoModelForTokenClassification
 from ultralytics import YOLO
 import pytesseract
 import torch
-import os
-from utils import draw_output, normalize_box, unnormalize_box
+from utils import normalize_box, unnormalize_box
 import numpy as np
 import pandas as pd
 import json
@@ -13,9 +12,9 @@ import json
 class LayoutLMv3:
     def __init__(self,
                  processor_pretrained='microsoft/layoutlmv3-base',
-                 layoutlm_pretrained='models/checkpoint-12-mar-2023',
+                 layoutlm_pretrained='models/checkpoint-5000',
                  yolo_pretrained='models/best.pt',
-                 tessdata_pretrained='models/tessdata/'):
+                 tessdata_pretrained='models/tessdata'):
         self.processor = AutoProcessor.from_pretrained(
             processor_pretrained, apply_ocr=False)
         self.lalm_model = AutoModelForTokenClassification.from_pretrained(
@@ -23,8 +22,7 @@ class LayoutLMv3:
         self.yolo_model = YOLO(yolo_pretrained)
         self.tess_path = tessdata_pretrained
 
-    def predict(self, input_image,
-                ):
+    def predict(self, input_image):
         bboxes = self.yolo_model.predict(source=input_image, conf=0.1)[
             0].boxes.xyxy.int()
         texts = []
