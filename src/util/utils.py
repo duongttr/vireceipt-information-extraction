@@ -14,7 +14,7 @@ def unnormalize_box(bbox, width, height):
         width * (bbox[0] / 1000),
         height * (bbox[1] / 1000),
         width * (bbox[2] / 1000),
-        height * (bbox[3] / 1000)
+        height * (bbox[3] / 1000),
     ]
 
 
@@ -23,7 +23,7 @@ def normalize_box(bbox, width, height):
         int((bbox[0] / width) * 1000),
         int((bbox[1] / height) * 1000),
         int((bbox[2] / width) * 1000),
-        int((bbox[3] / height) * 1000)
+        int((bbox[3] / height) * 1000),
     ]
 
 
@@ -31,7 +31,7 @@ def draw_output(image, true_predictions, true_boxes):
     def iob_to_label(label):
         label = label
         if not label:
-            return 'other'
+            return "other"
         return label
 
     # width, height = image.size
@@ -47,42 +47,68 @@ def draw_output(image, true_predictions, true_boxes):
 
     for prediction, box in zip(true_predictions, true_boxes):
         predicted_label = iob_to_label(prediction).lower()
-        draw.rectangle(box, outline='red')
-        draw.text((box[0] + 10, box[1] - 10),
-                  text=predicted_label, fill='red', font=font)
+        draw.rectangle(box, outline="red")
+        draw.text((box[0] + 10, box[1] - 10), text=predicted_label, fill="red", font=font)
 
     return image
 
 
-def create_json(true_texts,
-                true_predictions,
-                true_boxes,
-                chosen_labels=['SHOP_NAME', 'ADDR', 'TITLE', 'PHONE',
-                               'PRODUCT_NAME', 'AMOUNT', 'UNIT', 'UPRICE', 'SUB_TPRICE', 'UDISCOUNT',
-                               'TAMOUNT', 'TPRICE', 'FPRICE', 'TDISCOUNT',
-                               'RECEMONEY', 'REMAMONEY',
-                               'BILLID', 'DATETIME', 'CASHIER']
-                ):
-
-    result = {'PRODUCTS': {}}
+def create_json(
+    true_texts,
+    true_predictions,
+    true_boxes,
+    chosen_labels=[
+        "SHOP_NAME",
+        "ADDR",
+        "TITLE",
+        "PHONE",
+        "PRODUCT_NAME",
+        "AMOUNT",
+        "UNIT",
+        "UPRICE",
+        "SUB_TPRICE",
+        "UDISCOUNT",
+        "TAMOUNT",
+        "TPRICE",
+        "FPRICE",
+        "TDISCOUNT",
+        "RECEMONEY",
+        "REMAMONEY",
+        "BILLID",
+        "DATETIME",
+        "CASHIER",
+    ],
+):
+    result = {"PRODUCTS": {}}
     # products = []
     for text, prediction, box in zip(true_texts, true_predictions, true_boxes):
         if prediction not in chosen_labels:
             continue
 
-        if prediction in ['AMOUNT', 'UNIT', 'UDISCOUNT', 'UPRICE', 'SUB_TPRICE',
-                          'UDISCOUNT', 'TAMOUNT', 'TPRICE', 'FPRICE', 'TDISCOUNT',
-                          'RECEMONEY', 'REMAMONEY']:
+        if prediction in [
+            "AMOUNT",
+            "UNIT",
+            "UDISCOUNT",
+            "UPRICE",
+            "SUB_TPRICE",
+            "UDISCOUNT",
+            "TAMOUNT",
+            "TPRICE",
+            "FPRICE",
+            "TDISCOUNT",
+            "RECEMONEY",
+            "REMAMONEY",
+        ]:
             text = reformat(text)
 
-        if prediction in ['PRODUCT_NAME', 'AMOUNT', 'UNIT', 'UPRICE', 'SUB_TPRICE', 'UDISCOUNT']:
+        if prediction in ["PRODUCT_NAME", "AMOUNT", "UNIT", "UPRICE", "SUB_TPRICE", "UDISCOUNT"]:
             # tlx,tly,brx,bry = box[0], box[1], box[2], box[3]
             # center_x, center_y = int((tlx+brx)/2), int((tly+bry)/2)
             # products.append({prediction: (text, (center_x, center_y))})
-            if prediction in result['PRODUCTS'].keys():
-                result['PRODUCTS'][prediction].append(text)
+            if prediction in result["PRODUCTS"].keys():
+                result["PRODUCTS"][prediction].append(text)
             else:
-                result['PRODUCTS'][prediction] = [text]
+                result["PRODUCTS"][prediction] = [text]
         else:
             result[prediction] = text
 
@@ -93,8 +119,19 @@ def create_json(true_texts,
 
 def reformat(text: str):
     try:
-        text = text.replace('.', '').replace(',', '').replace(':', '').replace('/', '').replace('|', '').replace(
-            '\\', '').replace(')', '').replace('(', '').replace('-', '').replace(';', '').replace('_', '')
+        text = (
+            text.replace(".", "")
+            .replace(",", "")
+            .replace(":", "")
+            .replace("/", "")
+            .replace("|", "")
+            .replace("\\", "")
+            .replace(")", "")
+            .replace("(", "")
+            .replace("-", "")
+            .replace(";", "")
+            .replace("_", "")
+        )
         return int(text)
     except:
         return text
@@ -105,7 +142,7 @@ def process_product(products):
     max_label_counts = max(label_counts.values())
     for k, v in label_counts.items:
         if v < max_label_counts:
-            products.append({k: ('', (0, 0))})
+            products.append({k: ("", (0, 0))})
 
     num_of_keys = len(list(label_counts.keys()))
     chosen_key = list(label_counts.keys())[0]
@@ -146,16 +183,13 @@ def compute_metrics(p, return_entity_level_metrics=False):
 
     # Remove ignored index (special tokens)
     true_predictions = [
-        [ner_tags_list[p] for (p, l) in zip(prediction, label) if l != -100]
-        for prediction, label in zip(predictions, labels)
+        [ner_tags_list[p] for (p, l) in zip(prediction, label) if l != -100] for prediction, label in zip(predictions, labels)
     ]
     true_labels = [
-        [ner_tags_list[l] for (p, l) in zip(prediction, label) if l != -100]
-        for prediction, label in zip(predictions, labels)
+        [ner_tags_list[l] for (p, l) in zip(prediction, label) if l != -100] for prediction, label in zip(predictions, labels)
     ]
 
-    results = metric.compute(
-        predictions=true_predictions, references=true_labels)
+    results = metric.compute(predictions=true_predictions, references=true_labels)
     if return_entity_level_metrics:
         # Unpack nested dictionaries
         final_results = {}
