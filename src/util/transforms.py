@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
-from PIL import Image, ImageOps, ImageEnhance
-from matplotlib import pyplot as plt
 from scipy import ndimage
+from matplotlib import pyplot as plt
+from PIL import Image, ImageOps, ImageEnhance
 
 
-class InvoiceExtraction:
+class Transforms:
 
     def __init__(self, model):
         """
