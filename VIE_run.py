@@ -102,3 +102,11 @@ with st.spinner(random.choice(waiting)):
 
     elif process_button:
         st.warning("Chọn hình đi ba")
+
+hide_menu_style = """
+        <style>
+        #MainMenu {visibility: hidden; }
+        footer {visibility: hidden;}
+        </style>
+        """
+st.markdown(hide_menu_style, unsafe_allow_html=True)
